@@ -1,0 +1,650 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>检测历史 - 科大巡弋</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <style>
+        /* Mobile Menu Toggle */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            padding: 8px;
+        }
+
+        .hamburger {
+            display: block;
+            width: 24px;
+            height: 2px;
+            background: currentColor;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .hamburger::before, .hamburger::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: currentColor;
+            transition: all 0.3s;
+        }
+
+        .hamburger::before { top: -8px; }
+        .hamburger::after { bottom: -8px; }
+
+        .mobile-menu {
+            display: none;
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            background: rgba(10,10,15,0.98);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,195,255,0.1);
+            padding: 20px;
+            z-index: 99;
+        }
+
+        .mobile-menu.active { display: block; }
+        .mobile-menu .nav-link { display: block; padding: 16px 0; border-bottom: 1px solid rgba(0,195,255,0.05); }
+
+        /* Search & Filter */
+        .search-section {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 32px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 18px 12px 44px;
+            background: rgba(20,20,30,0.6);
+            border: 1px solid rgba(0,195,255,0.15);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .search-input::placeholder { color: rgba(255,255,255,0.3); }
+
+        .search-input:focus {
+            border-color: rgba(0,195,255,0.4);
+            box-shadow: 0 0 20px rgba(0,195,255,0.1);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            stroke: rgba(255,255,255,0.4);
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .filter-select {
+            padding: 12px 18px;
+            background: rgba(20,20,30,0.6);
+            border: 1px solid rgba(0,195,255,0.15);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+            min-width: 140px;
+        }
+
+        .filter-select option { background: #1a1a2e; }
+
+        @media (max-width: 900px) {
+            .mobile-menu-toggle { display: block; }
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        /* Tech Background */
+        .tech-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0,195,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,195,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.25;
+        }
+
+        .glow-orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+            top: -100px;
+            right: 10%;
+        }
+
+        /* Navigation */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            padding: 0 60px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(10,10,15,0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid rgba(0,195,255,0.1);
+        }
+
+        .logo {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+            text-shadow: 0 0 20px rgba(0,195,255,0.5);
+        }
+
+        .nav-links { display: flex; gap: 40px; }
+
+        .nav-link {
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.3s;
+            padding: 8px 0;
+            position: relative;
+        }
+
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00c3ff, #6366f1);
+            transition: width 0.3s;
+        }
+
+        .nav-link:hover, .nav-link.active { color: #fff; }
+        .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+
+        .nav-user { display: flex; align-items: center; gap: 20px; }
+        .user-name { font-size: 0.875rem; color: rgba(255,255,255,0.7); }
+
+        .btn-logout {
+            padding: 8px 16px;
+            background: rgba(0,195,255,0.1);
+            border: 1px solid rgba(0,195,255,0.2);
+            color: #00c3ff;
+            text-decoration: none;
+            font-size: 0.8rem;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+
+        .btn-logout:hover {
+            background: rgba(0,195,255,0.2);
+            box-shadow: 0 0 20px rgba(0,195,255,0.2);
+        }
+
+        /* Main */
+        .main {
+            position: relative;
+            z-index: 10;
+            padding-top: 64px;
+            min-height: 100vh;
+        }
+
+        /* Hero */
+        .hero {
+            padding: 100px 60px 40px;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 5vw, 3rem);
+            font-weight: 700;
+            letter-spacing: -1px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #fff 0%, #00c3ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-subtitle {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.5);
+        }
+
+        /* Content */
+        .content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 60px 100px;
+        }
+
+        /* Records Grid */
+        .records-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .record-card {
+            background: rgba(20,20,30,0.6);
+            border: 1px solid rgba(0,195,255,0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+
+        .record-card:hover {
+            border-color: rgba(0,195,255,0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0,195,255,0.15);
+        }
+
+        .record-img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: rgba(255,255,255,0.05);
+        }
+
+        .record-img-placeholder {
+            width: 100%;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.3);
+        }
+
+        .record-img-placeholder svg {
+            width: 48px;
+            height: 48px;
+            stroke: rgba(0,195,255,0.4);
+            stroke-width: 1.5;
+            fill: none;
+        }
+
+        .record-body { padding: 24px; }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .record-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .record-badge {
+            padding: 6px 12px;
+            background: rgba(0,195,255,0.1);
+            border: 1px solid rgba(0,195,255,0.2);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #00c3ff;
+        }
+
+        .record-meta { margin-bottom: 16px; }
+
+        .record-time {
+            font-size: 0.8rem;
+            color: rgba(255,255,255,0.4);
+        }
+
+        .record-actions { display: flex; gap: 10px; }
+
+        .btn-action {
+            flex: 1;
+            padding: 10px;
+            text-align: center;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-view {
+            background: rgba(0,195,255,0.1);
+            color: #00c3ff;
+            border: 1px solid rgba(0,195,255,0.2);
+        }
+
+        .btn-view:hover {
+            background: rgba(0,195,255,0.2);
+            box-shadow: 0 0 20px rgba(0,195,255,0.2);
+        }
+
+        .btn-delete {
+            background: rgba(239,68,68,0.1);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.2);
+        }
+
+        .btn-delete:hover {
+            background: rgba(239,68,68,0.2);
+            box-shadow: 0 0 20px rgba(239,68,68,0.2);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 60px;
+        }
+
+        .page-link {
+            padding: 10px 18px;
+            background: rgba(20,20,30,0.6);
+            border: 1px solid rgba(0,195,255,0.1);
+            border-radius: 8px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .page-link:hover, .page-link.active {
+            background: rgba(0,195,255,0.1);
+            border-color: rgba(0,195,255,0.3);
+            color: #fff;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 120px 40px;
+            background: rgba(20,20,30,0.4);
+            border: 1px dashed rgba(0,195,255,0.2);
+            border-radius: 24px;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+        }
+
+        .empty-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: rgba(0,195,255,0.4);
+            stroke-width: 1;
+            fill: none;
+        }
+
+        .empty-text {
+            color: rgba(255,255,255,0.6);
+            font-size: 1.1rem;
+            margin-bottom: 32px;
+        }
+
+        .btn-primary {
+            display: inline-block;
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #00c3ff 0%, #6366f1 100%);
+            color: #fff;
+            text-decoration: none;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px rgba(0,195,255,0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,195,255,0.5);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 60px;
+            border-top: 1px solid rgba(0,195,255,0.1);
+            text-align: center;
+            margin-top: 60px;
+        }
+
+        .footer-text { color: rgba(255,255,255,0.4); font-size: 0.85rem; }
+
+        @media (max-width: 900px) {
+            .nav { padding: 0 24px; }
+            .nav-links { display: none; }
+            .hero { padding: 80px 24px 30px; }
+            .content { padding: 0 24px 60px; }
+            .records-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+    <script src="{% static 'js/common.js' %}"></script>
+</head>
+<body>
+    <div class="tech-bg">
+        <div class="grid-overlay"></div>
+        <div class="glow-orb glow-orb-1"></div>
+    </div>
+
+    <nav class="nav">
+        <a href="{% url 'detection_home' %}" class="logo">科大巡弋</a>
+        <div class="nav-links">
+            <a href="{% url 'detection_home' %}" class="nav-link">首页</a>
+            <a href="{% url 'detection_detect' %}" class="nav-link">检测</a>
+            <a href="{% url 'detection_history' %}" class="nav-link active">历史</a>
+            <a href="{% url 'xiaoyu_chat' %}" class="nav-link">小科客服</a>
+            <a href="{% url 'detection_profile' %}" class="nav-link">我的</a>
+        </div>
+        <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+            <span class="hamburger"></span>
+        </button>
+        <div class="nav-user">
+            <span class="user-name">{{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="btn-logout">退出</a>
+        </div>
+    </nav>
+
+    <div class="mobile-menu" id="mobile-menu">
+        <a href="{% url 'detection_home' %}" class="nav-link">首页</a>
+        <a href="{% url 'detection_detect' %}" class="nav-link">检测</a>
+        <a href="{% url 'detection_history' %}" class="nav-link active">历史</a>
+        <a href="{% url 'xiaoyu_chat' %}" class="nav-link">小科客服</a>
+        <a href="{% url 'detection_profile' %}" class="nav-link">我的</a>
+    </div>
+
+    <main class="main">
+        <div class="hero">
+            <h1 class="hero-title">检测历史</h1>
+            <p class="hero-subtitle">共 {{ total }} 条记录</p>
+        </div>
+
+        <div class="content">
+            <div class="search-section">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                    <input type="text" class="search-input" id="search-input" placeholder="搜索文件名..." oninput="filterRecords()">
+                </div>
+                <select class="filter-select" id="filter-select" onchange="filterRecords()">
+                    <option value="">全部类型</option>
+                    <option value="image">图片检测</option>
+                    <option value="video">视频检测</option>
+                </select>
+            </div>
+
+            {% if records %}
+            <div class="records-grid">
+                {% for record in records %}
+                <div class="record-card">
+                    {% if record.result_image %}
+                    <img src="{{ record.result_image.url }}" class="record-img" alt="{{ record.file_name }}">
+                    {% else %}
+                    <div class="record-img-placeholder">
+                        <svg viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="32" rx="3"/><circle cx="17" cy="20" r="5"/><path d="M42 40L30 28l-8 8-6-6-10 10"/></svg>
+                    </div>
+                    {% endif %}
+                    <div class="record-body">
+                        <div class="record-header">
+                            <div class="record-name">{{ record.file_name }}</div>
+                            <span class="record-badge">{{ record.total_detections }} 个目标</span>
+                        </div>
+                        <div class="record-meta">
+                            <span class="record-time">{{ record.created_at|date:"Y年m月d日 H:i" }}</span>
+                        </div>
+                        <div class="record-actions">
+                            {% if record.result_image %}
+                            <a href="{{ record.result_image.url }}" target="_blank" class="btn-action btn-view">查看大图</a>
+                            {% endif %}
+                            <button class="btn-action btn-delete" onclick="deleteRecord({{ record.id }})">删除</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if records.has_other_pages %}
+            <div class="pagination">
+                {% if records.has_previous %}
+                <a href="?page={{ records.previous_page_number }}" class="page-link">上一页</a>
+                {% endif %}
+                <span class="page-link active">{{ records.number }} / {{ records.paginator.num_pages }}</span>
+                {% if records.has_next %}
+                <a href="?page={{ records.next_page_number }}" class="page-link">下一页</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <svg viewBox="0 0 64 64"><rect x="8" y="14" width="48" height="36" rx="4"/><circle cx="24" cy="28" r="6"/><path d="M56 50L40 32l-10 10-8-8-16 16"/></svg>
+                </div>
+                <p class="empty-text">暂无检测记录，开始您的第一次检测吧</p>
+                <a href="{% url 'detection_detect' %}" class="btn-primary">开始检测</a>
+            </div>
+            {% endif %}
+        </div>
+
+        <footer class="footer">
+            <p class="footer-text">© 2024 科大巡弋. 智能航拍目标检测系统.</p>
+        </footer>
+    </main>
+
+    <script>
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('active');
+        }
+
+        async function deleteRecord(id) {
+            const confirmed = await Modal.confirm('确定要删除这条记录吗？此操作不可撤销。', {
+                title: '确认删除',
+                type: 'danger',
+                confirmText: '删除',
+                cancelText: '取消'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                const res = await fetch(`/api/delete/${id}/`, {
+                    method: 'DELETE',
+                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    Toast.success('记录已删除', '成功');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    Toast.error(data.error || '删除失败', '错误');
+                }
+            } catch (e) {
+                Toast.error('删除失败', '错误');
+            }
+        }
+
+        function filterRecords() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const filterValue = document.getElementById('filter-select').value;
+            const cards = document.querySelectorAll('.record-card');
+
+            cards.forEach(card => {
+                const fileName = card.querySelector('.record-name').textContent.toLowerCase();
+                const badge = card.querySelector('.record-badge').textContent;
+                const matchesSearch = fileName.includes(searchTerm);
+                const matchesFilter = filterValue === '' ||
+                    (filterValue === 'image' && badge.includes('个目标')) ||
+                    (filterValue === 'video' && badge.includes('视频'));
+
+                card.style.display = matchesSearch && matchesFilter ? '' : 'none';
+            });
+        }
+
+        function getCookie(name) {
+            let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
+        }
+    </script>
+</body>
+</html>

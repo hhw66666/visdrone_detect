@@ -1,0 +1,52 @@
+# Ultralytics YOLO 🚀, AGPL-3.0 license
+# YOLOv11n-P2 for VisDrone: Nano model with P2 detection head for tiny objects
+# 基于 YOLOv11n 架构，针对无人机航拍微小目标检测优化
+
+# Parameters
+nc: 10  # number of classes (VisDrone dataset)
+scales:  # model compound scaling constants
+  n: [0.50, 0.25, 1024]  # depth_multiple, width_multiple, max_channels
+
+# YOLOv11n-P2 backbone
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv, [64, 3, 2]]   # 0-P1/2
+  - [-1, 1, Conv, [128, 3, 2]]  # 1-P2/4  ⚠️ 保留此层用于高分辨率检测
+  - [-1, 2, C3k2, [256, False, 0.25]]
+  - [-1, 1, Conv, [256, 3, 2]]  # 3-P3/8
+  - [-1, 2, C3k2, [512, False, 0.25]]
+  - [-1, 1, Conv, [512, 3, 2]]  # 5-P4/16
+  - [-1, 2, C3k2, [512, True]]
+  - [-1, 1, Conv, [1024, 3, 2]]  # 7-P5/32
+  - [-1, 2, C3k2, [1024, True]]
+  - [-1, 1, SPPF, [1024, 5]]  # 9
+
+# YOLOv11n-P2 head with 4 detection layers
+head:
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 6], 1, Concat, [1]]  # cat backbone P4
+  - [-1, 2, C3k2, [512, False]]  # 12
+
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]
+  - [[-1, 4], 1, Concat, [1]]  # cat backbone P3
+  - [-1, 2, C3k2, [256, False]]  # 15 (P3/8-small)
+
+  # ========== P2 高分辨率检测分支 (核心改进) ==========
+  - [-1, 1, nn.Upsample, [None, 2, 'nearest']]  # 上采样到 P2 尺度
+  - [[-1, 2], 1, Concat, [1]]  # cat backbone P2 (融合浅层特征)
+  - [-1, 2, C3k2, [128, False]]  # 18 (P2/4-tiny)  微小目标检测头
+  # ===================================================
+
+  - [-1, 1, Conv, [128, 3, 2]]
+  - [[-1, 15], 1, Concat, [1]]  # cat head P3
+  - [-1, 2, C3k2, [256, False]]  # 21 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]]
+  - [[-1, 12], 1, Concat, [1]]  # cat head P4
+  - [-1, 2, C3k2, [512, False]]  # 24 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]]
+  - [[-1, 9], 1, Concat, [1]]  # cat head P5
+  - [-1, 2, C3k2, [1024, True]]  # 27 (P5/32-large)
+
+  - [[18, 21, 24, 27], 1, Detect, [nc]]  # Detect(P2, P3, P4, P5)

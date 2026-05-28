@@ -1,0 +1,427 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 科大巡弋</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <style>
+        /* Password Input */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.4);
+            cursor: pointer;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+        .password-toggle:hover { color: #fff; }
+
+        .password-strength {
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .password-strength-bar {
+            height: 100%;
+            transition: all 0.3s;
+            border-radius: 2px;
+        }
+
+        .strength-weak { width: 33%; background: #ef4444; }
+        .strength-medium { width: 66%; background: #f59e0b; }
+        .strength-strong { width: 100%; background: #10b981; }
+
+        .form-input.error { border-color: #ef4444; }
+        .form-error { font-size: 0.8rem; color: #f87171; margin-top: 6px; display: none; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0a0f;
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        /* Tech Background */
+        .tech-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image:
+                linear-gradient(rgba(0,195,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,195,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .glow-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+        }
+
+        .glow-orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, #00c3ff 0%, transparent 70%);
+            top: -100px;
+            right: 20%;
+        }
+
+        .glow-orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, #6366f1 0%, transparent 70%);
+            bottom: 10%;
+            left: 10%;
+        }
+
+        /* Left Brand Side */
+        .brand-side {
+            flex: 1;
+            position: relative;
+            padding: 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            z-index: 1;
+        }
+
+        .brand-content { position: relative; z-index: 1; }
+
+        .brand-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 48px;
+            letter-spacing: -0.5px;
+            text-shadow: 0 0 30px rgba(0,195,255,0.5);
+        }
+
+        .brand-tagline {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 700;
+            color: #fff;
+            line-height: 1.2;
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #fff 0%, #00c3ff 50%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand-desc {
+            font-size: 1.1rem;
+            color: rgba(255,255,255,0.6);
+            line-height: 1.6;
+            max-width: 400px;
+        }
+
+        /* Features */
+        .features {
+            display: flex;
+            gap: 32px;
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 1px solid rgba(0,195,255,0.1);
+        }
+
+        .feature-item { display: flex; align-items: center; gap: 12px; }
+
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        .feature-icon svg {
+            width: 100%;
+            height: 100%;
+            stroke: #00c3ff;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .feature-text {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* Right Form Side */
+        .register-side {
+            width: 520px;
+            padding: 80px 60px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background: rgba(20,20,30,0.6);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(0,195,255,0.1);
+            position: relative;
+            z-index: 1;
+        }
+
+        .register-header { margin-bottom: 40px; }
+
+        .register-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .register-subtitle { color: rgba(255,255,255,0.5); font-size: 1rem; }
+
+        .form-group { margin-bottom: 24px; }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: rgba(255,255,255,0.8);
+            margin-bottom: 10px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(0,195,255,0.2);
+            border-radius: 12px;
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .form-input::placeholder { color: rgba(255,255,255,0.3); }
+
+        .form-input:focus {
+            border-color: rgba(0,195,255,0.5);
+            background: rgba(0,195,255,0.05);
+            box-shadow: 0 0 20px rgba(0,195,255,0.15);
+        }
+
+        .error-msg {
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: #f87171;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            margin-bottom: 24px;
+        }
+
+        .btn-register {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #00c3ff 0%, #6366f1 100%);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 12px;
+            box-shadow: 0 4px 20px rgba(0,195,255,0.3);
+        }
+
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px rgba(0,195,255,0.5);
+        }
+
+        .register-footer {
+            margin-top: 32px;
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 0.9rem;
+        }
+
+        .register-footer a {
+            color: #00c3ff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .register-footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 900px) {
+            body { flex-direction: column; }
+            .brand-side { padding: 40px 24px; }
+            .brand-tagline { font-size: 2rem; }
+            .register-side { width: 100%; padding: 40px 24px; }
+            .features { flex-direction: column; gap: 16px; }
+        }
+    </style>
+    <script src="{% static 'js/common.js' %}"></script>
+</head>
+<body>
+    <div class="tech-bg">
+        <div class="grid-overlay"></div>
+        <div class="glow-orb glow-orb-1"></div>
+        <div class="glow-orb glow-orb-2"></div>
+    </div>
+
+    <div class="brand-side">
+        <div class="brand-content">
+            <div class="brand-logo">科大巡弋</div>
+            <div class="brand-tagline">开始使用<br>智能航拍检测</div>
+            <p class="brand-desc">注册账号，解锁完整的航拍目标检测能力，发现无限可能</p>
+
+            <div class="features">
+                <div class="feature-item">
+                    <span class="feature-icon">
+                        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+                    </span>
+                    <span class="feature-text">高精度检测</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">
+                        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                    </span>
+                    <span class="feature-text">实时处理</span>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">
+                        <svg viewBox="0 0 24 24"><rect x="3" y="14" width="4" height="7" rx="1"/><rect x="10" y="9" width="4" height="12" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg>
+                    </span>
+                    <span class="feature-text">数据可视化</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="register-side">
+        <div class="register-header">
+            <h1 class="register-title">创建账户</h1>
+            <p class="register-subtitle">填写以下信息完成注册</p>
+        </div>
+
+        {% if error %}
+        <div class="error-msg">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">用户名</label>
+                <input type="text" name="username" class="form-input" placeholder="选择一个用户名" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">邮箱</label>
+                <input type="email" name="email" class="form-input" placeholder="输入邮箱地址" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label">密码</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password" id="password-input" class="form-input" placeholder="设置密码" required>
+                    <button type="button" class="password-toggle" id="password-toggle" aria-label="切换密码可见性">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="password-strength">
+                    <div class="password-strength-bar" id="strength-bar"></div>
+                </div>
+                <div class="form-error" id="password-error"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">确认密码</label>
+                <div class="password-wrapper">
+                    <input type="password" name="password2" id="password2-input" class="form-input" placeholder="再次输入密码" required>
+                    <button type="button" class="password-toggle" id="password2-toggle" aria-label="切换密码可见性">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="form-error" id="password2-error"></div>
+            </div>
+            <button type="submit" class="btn-register">注 册</button>
+        </form>
+
+        <div class="register-footer">
+            已有账户? <a href="{% url 'login' %}">立即登录</a>
+        </div>
+    </div>
+
+    <script>
+        // Password Toggle
+        initPasswordToggle('password-input', 'password-toggle');
+        initPasswordToggle('password2-input', 'password2-toggle');
+
+        // Password Strength Indicator
+        const passwordInput = document.getElementById('password-input');
+        const strengthBar = document.getElementById('strength-bar');
+
+        passwordInput.addEventListener('input', function() {
+            const strength = checkPasswordStrength(this.value);
+            strengthBar.className = 'password-strength-bar strength-' + strength;
+        });
+
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const password = document.getElementById('password-input').value;
+            const password2 = document.getElementById('password2-input').value;
+            const errorEl = document.getElementById('password-error');
+            const error2El = document.getElementById('password2-error');
+            let hasError = false;
+
+            if (password.length > 0 && password.length < 8) {
+                e.preventDefault();
+                errorEl.textContent = '密码长度至少为8个字符';
+                errorEl.style.display = 'block';
+                passwordInput.classList.add('error');
+                hasError = true;
+            }
+
+            if (password2.length > 0 && password !== password2) {
+                e.preventDefault();
+                error2El.textContent = '两次输入的密码不一致';
+                error2El.style.display = 'block';
+                document.getElementById('password2-input').classList.add('error');
+                hasError = true;
+            }
+
+            if (hasError) {
+                Toast.error('请检查表单信息', '验证失败');
+            }
+        });
+    </script>
+</body>
+</html>
