@@ -72,7 +72,23 @@ pip install django==5.2.13 ultralytics opencv-python pillow numpy xmltodict
 
 ---
 
-## 第四步：运行服务器
+## 第四步：配置 API Key
+
+复制配置文件模板并填入您的 API Key：
+
+```bash
+copy config.xml.example config.xml
+```
+
+然后编辑 `config.xml`，填入您的 API Key：
+- `minimax/api_key` - MiniMax API Key（小科客服用）
+- `mcp/api_key` - ModelScope API Key（天气/地图查询用）
+
+如无 API Key，请到对应平台申请：
+- MiniMax：https://platform.minimaxi.com/
+- ModelScope：https://modelscope.cn/
+
+## 第五步：运行服务器
 
 进入项目目录，运行：
 
@@ -101,7 +117,36 @@ taskkill //F //IM python.exe
 
 ---
 
-## 第五步：打开浏览器使用
+## 第五步：运行服务器
+
+进入项目目录，运行：
+
+```bash
+cd d:\visdrone_detect
+
+python manage.py runserver
+```
+
+看到以下输出说明启动成功：
+
+```
+Starting development server at http://127.0.0.1:8000/
+Quit the server with CTRL-BREAK.
+```
+
+### 关闭服务器
+
+在运行服务器的命令行窗口中按 `Ctrl+Break`（或 `Ctrl+C`）即可关闭。
+
+或者在另一个命令行窗口中执行：
+
+```bash
+taskkill //F //IM python.exe
+```
+
+---
+
+## 第六步：打开浏览器使用
 
 在浏览器中打开：**http://127.0.0.1:8000/**
 
@@ -136,6 +181,8 @@ d:\visdrone_detect\
 │   ├── settings.py           # Django 设置
 │   ├── urls.py               # 路由配置
 │   └── config_loader.py      # 配置文件加载
+│
+├── config.xml.example        # 配置文件模板（需复制为 config.xml 并填入 API Key）
 │
 ├── detection/                 # Django 应用
 │   ├── views.py              # 视图函数
@@ -189,11 +236,11 @@ pip install django ultralytics opencv-python pillow numpy xmltodict
 
 ### 4. 小科客服无法回复
 
-检查 `config.xml` 中的 MiniMax API 配置是否正确。
+检查 `config.xml` 中的 MiniMax API Key 是否正确配置。
 
 ### 5. 小科无法查询天气/地图
 
-检查 `config.xml` 中的 ModelScope MCP 配置是否正确。
+检查 `config.xml` 中的 ModelScope API Key 是否正确配置。
 
 ---
 
