@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+    <app_settings>
+        <app_name>航拍目标检测系统</app_name>
+        <version>1.0.0</version>
+        <debug>true</debug>
+    </app_settings>
+
+    <database>
+        <type>sqlite</type>
+        <name>db.sqlite3</name>
+    </database>
+
+    <detection>
+        <default_confidence>0.25</default_confidence>
+        <default_iou>0.45</default_iou>
+        <model_path>models/v8-best.pt</model_path>
+        <device>cpu</device>
+    </detection>
+
+    <classes>
+        <class id="0" name="car" chinese="小汽车" color="#E53935"/>
+        <class id="1" name="motor" chinese="摩托车" color="#8E24AA"/>
+        <class id="2" name="people" chinese="人群" color="#43A047"/>
+        <class id="3" name="pedestrian" chinese="行人" color="#00ACC1"/>
+        <class id="4" name="awning-tricycle" chinese="带篷三轮车" color="#FB8C00"/>
+        <class id="5" name="tricycle" chinese="三轮车" color="#F4511E"/>
+        <class id="6" name="bicycle" chinese="自行车" color="#6D4C41"/>
+        <class id="7" name="truck" chinese="卡车" color="#3949AB"/>
+        <class id="8" name="van" chinese="面包车" color="#D81B60"/>
+        <class id="9" name="bus" chinese="公交车" color="#00897B"/>
+    </classes>
+
+    <ui>
+        <theme>blue</theme>
+        <page_size>large</page_size>
+        <items_per_page>20</items_per_page>
+    </ui>
+
+    <minimax>
+        <!-- TODO: 请替换为您自己的 API Key -->
+        <api_key>YOUR_MINIMAX_API_KEY_HERE</api_key>
+        <base_url>https://api.minimaxi.com/anthropic/v1</base_url>
+        <model>MiniMax-M2.7</model>
+    </minimax>
+
+    <ai_services>
+        <!-- Agent 配置 -->
+        <agents>
+            <xiaoyu>
+                <name>小科</name>
+                <model>MiniMax-M2.7</model>
+                <max_tokens>1024</max_tokens>
+                <temperature>0.7</temperature>
+                <system_prompt_template>default</system_prompt_template>
+            </xiaoyu>
+        </agents>
+
+        <!-- RAG 配置 -->
+        <rag>
+            <enable>true</enable>
+            <embedder_type>dashscope</embedder_type>
+            <embedding_dimension>1536</embedding_dimension>
+            <top_k>3</top_k>
+            <knowledge_base_path>data/knowledge</knowledge_base_path>
+        </rag>
+
+        <!-- MCP 配置 -->
+        <mcp>
+            <enable>true</enable>
+            <server_url>https://mcp.api-inference.modelscope.net/55226825141440/mcp</server_url>
+            <transport>streamable_http</transport>
+            <!-- TODO: 请替换为您自己的 API Key -->
+            <api_key>YOUR_MODELSCOPE_API_KEY_HERE</api_key>
+            <tools>
+                <query_database>
+                    <enable>false</enable>
+                    <description>查询数据库检测记录</description>
+                </query_database>
+                <read_file>
+                    <enable>false</enable>
+                    <description>读取系统文件</description>
+                </read_file>
+                <call_api>
+                    <enable>false</enable>
+                    <description>调用外部API</description>
+                </call_api>
+                <amap_weather>
+                    <enable>true</enable>
+                    <description>查询高德地图天气信息</description>
+                </amap_weather>
+                <amap_place>
+                    <enable>true</enable>
+                    <description>查询高德地图地点位置信息</description>
+                </amap_place>
+                <amap_geocode>
+                    <enable>true</enable>
+                    <description>高德地图地理编码，地址转经纬度</description>
+                </amap_geocode>
+            </tools>
+        </mcp>
+
+        <!-- LangChain 配置 -->
+        <langchain>
+            <enable>false</enable>
+            <llm_type>minimax</llm_type>
+            <memory_type>buffer</memory_type>
+            <max_history>10</max_history>
+        </langchain>
+    </ai_services>
+</configuration>
