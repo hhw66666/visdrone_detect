@@ -1,2 +1,5 @@
 # 隐私文件 - 请勿上传
 detect_system/config.xml
+
+# 日志目录
+logs/

@@ -82,6 +82,14 @@ def _search_knowledge_impl(query: str, top_k: int = 3) -> dict:
         return {"success": False, "error": str(e)}
 
 
+# 导入缓存模块
+try:
+    from ai_services.cache.redis_cache import cache_get, cache_set
+    HAS_CACHE = True
+except ImportError:
+    HAS_CACHE = False
+
+
 def _amap_weather_impl(city: str) -> dict:
     """
     查询天气（优先用高德 MCP，备用 wttr.in）
@@ -92,6 +100,14 @@ def _amap_weather_impl(city: str) -> dict:
     Returns:
         天气结果
     """
+    # 先尝试从缓存获取
+    if HAS_CACHE:
+        cache_key = f"cache:weather:{city}"
+        cached = cache_get(cache_key)
+        if cached:
+            logger.info(f"天气缓存命中: {city}")
+            return cached
+
     # 城市名中英映射（常用城市）
     CITY_NAME_MAP = {
         '北京': 'Beijing', '上海': 'Shanghai', '广州': 'Guangzhou',
@@ -165,6 +181,9 @@ def _amap_weather_impl(city: str) -> dict:
             result = mcp_client.call_tool("maps_weather", {"city": city})
             if result.get("success"):
                 logger.info("MCP 天气查询成功")
+                # 缓存结果（30分钟）
+                if HAS_CACHE:
+                    cache_set(cache_key, result, ttl=1800)
                 return result
             logger.warning(f"MCP 天气查询失败: {result.get('error', 'unknown')}")
         else:
@@ -186,6 +205,15 @@ def _amap_place_search_impl(keywords: str, city: str = "全国") -> dict:
     Returns:
         地点搜索结果
     """
+    # 先尝试从缓存获取
+    if HAS_CACHE:
+        from ai_services.cache.redis_cache import hash_key
+        cache_key = f"cache:place:{hash_key(keywords + city)}"
+        cached = cache_get(cache_key)
+        if cached:
+            logger.info(f"地点搜索缓存命中: {keywords}")
+            return cached
+
     # 尝试高德 MCP
     try:
         from ..mcp.modelscope_client import get_modelscope_client
@@ -216,7 +244,7 @@ def _amap_place_search_impl(keywords: str, city: str = "全国") -> dict:
             data = resp.json()
             if data:
                 first = data[0]
-                return {
+                result = {
                     "success": True,
                     "data": json.dumps({
                         "pois": [{
@@ -226,6 +254,10 @@ def _amap_place_search_impl(keywords: str, city: str = "全国") -> dict:
                         }]
                     }, ensure_ascii=False)
                 }
+                # 缓存结果（2小时）
+                if HAS_CACHE:
+                    cache_set(cache_key, result, ttl=7200)
+                return result
     except Exception as e:
         logger.error(f"Nominatim 搜索失败: {e}")
 
@@ -243,6 +275,15 @@ def _amap_geocode_impl(address: str, city: str = "") -> dict:
     Returns:
         地理编码结果
     """
+    # 先尝试从缓存获取
+    if HAS_CACHE:
+        from ai_services.cache.redis_cache import hash_key
+        cache_key = f"cache:geocode:{hash_key(address + city)}"
+        cached = cache_get(cache_key)
+        if cached:
+            logger.info(f"地理编码缓存命中: {address}")
+            return cached
+
     # 尝试高德 MCP
     try:
         from ..mcp.modelscope_client import get_modelscope_client
@@ -253,6 +294,9 @@ def _amap_geocode_impl(address: str, city: str = "") -> dict:
             result = mcp_client.call_tool("maps_geo", {"address": address, "city": city})
             if result.get("success"):
                 logger.info("MCP 地理编码成功")
+                # 缓存结果（24小时）
+                if HAS_CACHE:
+                    cache_set(cache_key, result, ttl=86400)
                 return result
             logger.warning(f"MCP 地理编码失败: {result.get('error', 'unknown')}")
         else:
@@ -273,13 +317,17 @@ def _amap_geocode_impl(address: str, city: str = "") -> dict:
             data = resp.json()
             if data:
                 first = data[0]
-                return {
+                result = {
                     "success": True,
                     "data": json.dumps({
                         "location": f"{first.get('lon', '')},{first.get('lat', '')}",
                         "address": first.get('display_name', address)
                     }, ensure_ascii=False)
                 }
+                # 缓存结果（24小时）
+                if HAS_CACHE:
+                    cache_set(cache_key, result, ttl=86400)
+                return result
     except Exception as e:
         logger.error(f"Nominatim 地理编码失败: {e}")
 

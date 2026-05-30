@@ -333,6 +333,17 @@ class XiaoyuAgent(BaseAgent):
                                     '192.168.', '127.', 'localhost')):
             return "无法获取位置信息（内网IP或无效IP）"
 
+        # 先尝试从缓存获取
+        try:
+            from ai_services.cache.redis_cache import cache_get, cache_set
+            cache_key = f"cache:ip_location:{ip}"
+            cached = cache_get(cache_key)
+            if cached:
+                logger.info(f"IP 定位缓存命中: {ip}")
+                return cached.get('location', '')
+        except ImportError:
+            pass
+
         # 尝试 ipapi.co
         try:
             url = f"https://ipapi.co/{ip}/json/"
@@ -341,11 +352,19 @@ class XiaoyuAgent(BaseAgent):
                 data = json.loads(response.read().decode('utf-8'))
             city = data.get('city') or data.get('region')
             if city:
-                return (f"国家: {data.get('country_name', '未知')}, "
+                location = (f"国家: {data.get('country_name', '未知')}, "
                         f"省份: {data.get('region', '未知')}, "
                         f"城市: {data.get('city', '未知')}, "
                         f"ISP: {data.get('org', '未知')}, "
                         f"经纬度: {data.get('latitude', '?')},{data.get('longitude', '?')}")
+                # 缓存结果（24小时）
+                try:
+                    from ai_services.cache.redis_cache import cache_set
+                    cache_key = f"cache:ip_location:{ip}"
+                    cache_set(cache_key, {'location': location}, ttl=86400)
+                except ImportError:
+                    pass
+                return location
         except Exception as e:
             logger.warning(f"ipapi.co 查询失败: {e}")
 
@@ -356,12 +375,20 @@ class XiaoyuAgent(BaseAgent):
             with urllib.request.urlopen(req, timeout=5) as response:
                 data = json.loads(response.read().decode('utf-8'))
             if data.get('status') == 'success':
-                return (f"国家: {data.get('country', '未知')} ({data.get('countryCode', '')}), "
+                location = (f"国家: {data.get('country', '未知')} ({data.get('countryCode', '')}), "
                         f"省份: {data.get('regionName', '未知')}, "
                         f"城市: {data.get('city', '未知')}, "
                         f"区/县: {data.get('district', '未知')}, "
                         f"ISP: {data.get('isp', '未知')}, "
                         f"经纬度: {data.get('lat', '?')},{data.get('lon', '?')}")
+                # 缓存结果（24小时）
+                try:
+                    from ai_services.cache.redis_cache import cache_set
+                    cache_key = f"cache:ip_location:{ip}"
+                    cache_set(cache_key, {'location': location}, ttl=86400)
+                except ImportError:
+                    pass
+                return location
         except Exception as e:
             logger.warning(f"ip-api.com 查询失败: {e}")
 
@@ -373,11 +400,19 @@ class XiaoyuAgent(BaseAgent):
                 data = json.loads(response.read().decode('utf-8'))
             if data.get('city') or data.get('region'):
                 loc = data.get('loc', '')
-                return (f"国家: {data.get('country', '未知')}, "
+                location = (f"国家: {data.get('country', '未知')}, "
                         f"省份: {data.get('region', '未知')}, "
                         f"城市: {data.get('city', '未知')}, "
                         f"ISP: {data.get('org', '未知')}, "
                         f"经纬度: {loc or '?'}")
+                # 缓存结果（24小时）
+                try:
+                    from ai_services.cache.redis_cache import cache_set
+                    cache_key = f"cache:ip_location:{ip}"
+                    cache_set(cache_key, {'location': location}, ttl=86400)
+                except ImportError:
+                    pass
+                return location
         except Exception as e:
             logger.warning(f"ipinfo.io 查询失败: {e}")
 

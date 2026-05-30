@@ -23,6 +23,7 @@ from detect_system.config_loader import get_detection_config, get_classes, get_a
 
 # 导入 AI 服务模块
 from ai_services.agents.xiaoyu import XiaoyuAgent, get_xiaoyu_agent
+from ai_services.middleware.rate_limit import sliding_window_rate_limit
 
 # 全局模型
 _model = None
@@ -236,17 +237,57 @@ def detect_view(request):
 def history_view(request):
     """历史记录"""
     app_config = get_app_config()
-    records = request.user.detections.all()
+    page_num = int(request.GET.get('page', 1))
 
+    # 尝试从缓存获取
+    try:
+        from ai_services.cache.redis_cache import cache_get, cache_set
+        cache_key = f"feed:{request.user.username}:page:{page_num}"
+        cached = cache_get(cache_key)
+        if cached:
+            # 缓存命中，构造分页对象
+            from detection.models import DetectionRecord
+            records_ids = cached.get('record_ids', [])
+            records = DetectionRecord.objects.filter(id__in=records_ids, user=request.user)
+            # 重新排序以匹配缓存顺序
+            records_dict = {r.id: r for r in records}
+            ordered_records = [records_dict[rid] for rid in records_ids if rid in records_dict]
+            total = cached.get('total', 0)
+
+            paginator = Paginator(ordered_records, 12)
+            records_page = paginator.get_page(page_num)
+
+            context = {
+                'app_name': app_config.get('app_name', '检测系统'),
+                'records': records_page,
+                'total': total,
+            }
+            return render(request, 'detection/history.html', context)
+    except Exception:
+        pass
+
+    # 缓存未命中，查数据库
+    records = request.user.detections.all()
     paginator = Paginator(records, 12)
-    page = request.GET.get('page')
-    records_page = paginator.get_page(page)
+    records_page = paginator.get_page(page_num)
 
     context = {
         'app_name': app_config.get('app_name', '检测系统'),
         'records': records_page,
         'total': records.count(),
     }
+
+    # 存入缓存（5分钟）
+    try:
+        from ai_services.cache.redis_cache import cache_set
+        records_ids = [r.id for r in records_page.object_list]
+        cache_set(cache_key, {
+            'record_ids': records_ids,
+            'total': records.count()
+        }, ttl=300)
+    except Exception:
+        pass
+
     return render(request, 'detection/history.html', context)
 
 @login_required
@@ -276,6 +317,7 @@ def xiaoyu_chat_view(request):
 
 @login_required
 @csrf_exempt
+@sliding_window_rate_limit('detect', limit=10, window=60)
 def api_detect_image(request):
     """图片检测API"""
     if request.method != 'POST':
@@ -317,6 +359,25 @@ def api_detect_image(request):
             confidence_threshold=conf,
             iou_threshold=iou,
         )
+
+        # 清除该用户的 feed 缓存
+        try:
+            from ai_services.cache.redis_cache import get_redis
+            r = get_redis()
+            pattern = f"feed:{request.user.username}:*"
+            keys = r.keys(pattern)
+            if keys:
+                r.delete(*keys)
+        except Exception:
+            pass
+
+        # 更新排行榜
+        try:
+            from ai_services.cache.redis_cache import get_redis
+            r = get_redis()
+            r.zincrby('leaderboard:detections', 1, request.user.username)
+        except Exception:
+            pass
 
         return JsonResponse({
             'success': True,
@@ -373,6 +434,7 @@ def api_upload_avatar(request):
 
 @login_required
 @csrf_exempt
+@sliding_window_rate_limit('chat', limit=30, window=60)
 def api_chat(request):
     """小科客服聊天 API
 
@@ -545,3 +607,31 @@ def api_delete_chat_record(request, record_id):
 def chat_history_view(request):
     """聊天记录管理页面"""
     return render(request, 'detection/chat_history.html')
+
+
+@login_required
+def api_leaderboard(request):
+    """
+    获取检测排行榜
+
+    Returns:
+        前10名排行榜和当前用户排名
+    """
+    try:
+        from ai_services.cache.redis_cache import get_redis
+        r = get_redis()
+
+        # 获取前10名
+        leaders = r.zrevrange('leaderboard:detections', 0, 9, withscores=True)
+        # 当前用户排名
+        rank = r.zrevrank('leaderboard:detections', request.user.username)
+        score = r.zscore('leaderboard:detections', request.user.username)
+
+        return JsonResponse({
+            'success': True,
+            'leaders': [{'username': u, 'score': int(s)} for u, s in leaders],
+            'user_rank': rank + 1 if rank is not None else None,
+            'user_score': int(score) if score else 0
+        })
+    except Exception:
+        return JsonResponse({'success': True, 'leaders': [], 'user_rank': None, 'user_score': 0})
