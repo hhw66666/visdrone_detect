@@ -3,3 +3,11 @@ detect_system/config.xml
 
 # 日志目录
 logs/
+
+# Python 缓存
+__pycache__/
+*.pyc
+*.pyo
+
+# ChromaDB 向量数据库
+data/chroma_db/

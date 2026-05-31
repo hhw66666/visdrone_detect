@@ -36,6 +36,17 @@ class XiaoyuAgent(BaseAgent):
 
         self.system_prompt_template = config.get('system_prompt_template', 'default')
         self._load_api_config()
+        self._init_rag_retriever()
+
+    def _init_rag_retriever(self):
+        """初始化 RAG 检索器"""
+        self.retriever = None
+        try:
+            from ..rag.retriever import get_retriever
+            self.retriever = get_retriever()
+            logger.info("RAG 检索器初始化成功")
+        except Exception as e:
+            logger.warning(f"RAG 检索器初始化失败: {e}")
 
     def _load_api_config(self):
         """加载 API 配置"""
@@ -86,6 +97,19 @@ class XiaoyuAgent(BaseAgent):
         messages = [
             {"role": "system", "content": self.get_system_prompt()}
         ] + [msg.to_dict() for msg in self.conversation_history]
+
+        # RAG 检索增强：如果有 retriever，先进行知识库检索
+        if self.retriever:
+            try:
+                rag_context = self.retriever.get_context(user_message, top_k=3)
+                if rag_context:
+                    logger.info("RAG 检索到相关知识")
+                    messages.insert(1, {
+                        "role": "system",
+                        "content": f"【知识库检索结果】：\n{rag_context}\n\n请基于上述信息回答用户问题。"
+                    })
+            except Exception as e:
+                logger.warning(f"RAG 检索失败: {e}")
 
         try:
             reply = self._call_minimax_api_sync(messages)
